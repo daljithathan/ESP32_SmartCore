@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32 SmartCore Setup Guide</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary: #00BFA6; /* Matches app theme */
+            --primary-dark: #00796B;
+            --bg-color: #f4f7f6;
+            --text-main: #2C3E50;
+            --text-light: #7F8C8D;
+            --card-bg: #ffffff;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+            color: white;
+            padding: 4rem 2rem;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 3rem auto;
+            padding: 0 2rem;
+        }
+
+        /* Timeline Styles */
+        .timeline {
+            position: relative;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 31px;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: #e0e0e0;
+            border-radius: 4px;
+        }
+
+        .phase-title {
+            margin-left: 80px;
+            color: var(--primary-dark);
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            margin-top: 3rem;
+            position: relative;
+        }
+
+        .phase-title:first-child {
+            margin-top: 0;
+        }
+
+        .step-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 1.5rem 2rem;
+            margin-left: 80px;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            position: relative;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border-left: 5px solid var(--primary);
+        }
+
+        .step-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+
+        .step-icon {
+            position: absolute;
+            left: -65px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 35px;
+            height: 35px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            box-shadow: 0 0 0 6px var(--bg-color);
+            z-index: 1;
+        }
+
+        .step-card h3 {
+            margin-top: 0;
+            color: var(--text-main);
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .step-card p {
+            color: var(--text-light);
+            margin-bottom: 0;
+        }
+
+        .highlight {
+            background: #e8f8f5;
+            color: var(--primary-dark);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-weight: 600;
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-light);
+            font-size: 0.9rem;
+            margin-top: 4rem;
+            background: white;
+        }
+
+        @media (max-width: 600px) {
+            .timeline::before { left: 20px; }
+            .step-card { margin-left: 55px; padding: 1.5rem; }
+            .step-icon { left: -48px; width: 30px; height: 30px; font-size: 1rem; }
+            .phase-title { margin-left: 55px; }
+            header h1 { font-size: 2rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <i class="fa-solid fa-microchip fa-3x" style="margin-bottom: 1rem;"></i>
+        <h1>ESP32 Configuration Guide</h1>
+        <p>A step-by-step workflow to provision your microcontroller, connect to Wi-Fi, and configure IoT actuators.</p>
+    </header>
+
+    <div class="container">
+        <div class="timeline">
+            
+            <h2 class="phase-title" data-aos="fade-right"><i class="fa-solid fa-laptop-code"></i> Phase 1: Initial Device Prep</h2>
+            
+            <div class="step-card" data-aos="fade-up">
+                <div class="step-icon"><i class="fa-solid fa-upload"></i></div>
+                <h3>1. Flash Base Firmware</h3>
+                <p>Open the Arduino IDE on your PC. Copy the initial "ESP32 Setup Code" (found via the "Get ESP32 Code" button in the app) and upload it directly to your ESP32 board.</p>
+            </div>
+
+            <div class="step-card" data-aos="fade-up" data-aos-delay="100">
+                <div class="step-icon"><i class="fa-solid fa-wifi"></i></div>
+                <h3>2. Verify AP Mode</h3>
+                <p>Once the code finishes uploading, check your smartphone's Wi-Fi settings. Confirm that the ESP32 is broadcasting a setup network (it will look like <span class="highlight">ESP32-Setup-XXXX</span>).</p>
+            </div>
+
+            <h2 class="phase-title" data-aos="fade-right"><i class="fa-solid fa-mobile-screen-button"></i> Phase 2: App Provisioning</h2>
+
+            <div class="step-card" data-aos="fade-up">
+                <div class="step-icon"><i class="fa-solid fa-satellite-dish"></i></div>
+                <h3>3. Scan for Device</h3>
+                <p>Open the mobile app, navigate to the <strong>Configure ESP32</strong> screen, and tap the "Select Device" dropdown menu to scan for and select your specific ESP32 board.</p>
+            </div>
+
+            <div class="step-card" data-aos="fade-up" data-aos-delay="100">
+                <div class="step-icon"><i class="fa-solid fa-key"></i></div>
+                <h3>4. Enter Credentials</h3>
+                <p>Input your local Wi-Fi SSID and Password (the network you want the ESP32 to connect to permanently). Ensure the default ESP32 AP Password is set to <span class="highlight">esp32setup</span>.</p>
+            </div>
+
+            <div class="step-card" data-aos="fade-up" data-aos-delay="200">
+                <div class="step-icon"><i class="fa-solid fa-paper-plane"></i></div>
+                <h3>5. Save & Provision</h3>
+                <p>Tap <strong>Save</strong>. The app will securely connect to the ESP32's setup network, transfer your Wi-Fi and Firebase credentials, and reboot the ESP32 onto the internet.</p>
+            </div>
+
+            <h2 class="phase-title" data-aos="fade-right"><i class="fa-solid fa-chart-line"></i> Phase 3: IoT Control & Logic</h2>
+
+            <div class="step-card" data-aos="fade-up">
+                <div class="step-icon"><i class="fa-solid fa-check-circle"></i></div>
+                <h3>6. Verify Online Status</h3>
+                <p>Navigate to the app's main Dashboard. Wait a few moments for the Device Info card to refresh and show the status as <strong>Online</strong>.</p>
+            </div>
+
+            <div class="step-card" data-aos="fade-up" data-aos-delay="100">
+                <div class="step-icon"><i class="fa-solid fa-plug"></i></div>
+                <h3>7. Register Components</h3>
+                <p>Tap <strong>Add Actuator</strong> to define the specific hardware pins for your physical components (LEDs, Servos, DHT11 sensors, etc.).</p>
+            </div>
+
+            <div class="step-card" data-aos="fade-up" data-aos-delay="200">
+                <div class="step-icon"><i class="fa-solid fa-gears"></i></div>
+                <h3>8. Control & Generate</h3>
+                <p>You can now monitor live sensor data! To add automation rules (e.g., "If temp > 30, turn on Fan"), go to Settings, use the <strong>Code Generator</strong>, and upload the final generated code back to your ESP32.</p>
+            </div>
+
+        </div>
+    </div>
+
+    <footer>
+        <p>Department of Electronics and Communication Engineering</p>
+    </footer>
+
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>
+        AOS.init({
+            duration: 800,
+            once: true,
+            offset: 100
+        });
+    </script>
+</body>
+</html>
