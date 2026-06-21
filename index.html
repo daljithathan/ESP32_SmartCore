@@ -8,10 +8,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/atom-one-dark.min.css">
 
     <style>
         :root {
-            --primary: #00BFA6; /* Matches app theme */
+            --primary: #00BFA6;
             --primary-dark: #00796B;
             --bg-color: #f4f7f6;
             --text-main: #2C3E50;
@@ -96,15 +97,14 @@
         }
 
         .step-card:hover {
-            transform: translateY(-5px);
+            transform: translateY(-3px);
             box-shadow: 0 8px 25px rgba(0,0,0,0.1);
         }
 
         .step-icon {
             position: absolute;
             left: -65px;
-            top: 50%;
-            transform: translateY(-50%);
+            top: 1.5rem; /* Aligned to top rather than center for taller cards */
             width: 35px;
             height: 35px;
             background: var(--primary);
@@ -129,7 +129,7 @@
 
         .step-card p {
             color: var(--text-light);
-            margin-bottom: 0;
+            margin-bottom: 1rem;
         }
 
         .highlight {
@@ -139,6 +139,75 @@
             border-radius: 4px;
             font-family: monospace;
             font-weight: 600;
+        }
+
+        /* Code Block Styles */
+        .code-container {
+            background: #282c34;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .code-header {
+            background: #1e2227;
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #333;
+        }
+
+        .code-title {
+            color: #abb2bf;
+            font-size: 0.9rem;
+            font-family: monospace;
+        }
+
+        .copy-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 5px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .copy-btn:hover {
+            background: var(--primary-dark);
+        }
+
+        .code-container pre {
+            margin: 0;
+            padding: 15px;
+            max-height: 350px;
+            overflow-y: auto;
+        }
+
+        .code-container code {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+
+        /* Custom Scrollbar for code block */
+        .code-container pre::-webkit-scrollbar {
+            width: 8px;
+        }
+        .code-container pre::-webkit-scrollbar-track {
+            background: #282c34;
+        }
+        .code-container pre::-webkit-scrollbar-thumb {
+            background: #4b5263;
+            border-radius: 4px;
         }
 
         footer {
@@ -175,7 +244,226 @@
             <div class="step-card" data-aos="fade-up">
                 <div class="step-icon"><i class="fa-solid fa-upload"></i></div>
                 <h3>1. Flash Base Firmware</h3>
-                <p>Open the Arduino IDE on your PC. Copy the initial "ESP32 Setup Code" (found via the "Get ESP32 Code" button in the app) and upload it directly to your ESP32 board.</p>
+                <p>Open the Arduino IDE on your PC. Copy the initial "ESP32 Setup Code" below and upload it directly to your ESP32 board. This code allows the app to discover and configure your device.</p>
+                
+                <div class="code-container">
+                    <div class="code-header">
+                        <span class="code-title"><i class="fa-solid fa-file-code"></i> ESP32_Setup.ino</span>
+                        <button class="copy-btn" onclick="copyCode()"><i class="fa-regular fa-copy"></i> Copy Code</button>
+                    </div>
+                    <pre><code class="language-cpp" id="firmwareCode">#include <WiFi.h>
+#include <WebServer.h>
+#include <FirebaseESP32.h>
+#include <ArduinoJson.h>
+#include <time.h>
+#include <EEPROM.h>
+
+#define ONBOARD_LED 2
+#define RESET_PIN 13
+
+#define EEPROM_SIZE 512
+#define WIFI_SSID_ADDR 0
+#define WIFI_PASS_ADDR 64
+#define FIREBASE_HOST_ADDR 128
+#define FIREBASE_AUTH_ADDR 256
+#define DEVICE_ID_ADDR 384
+#define OWNER_UID_ADDR 416
+
+#define NTP_SERVER1 "pool.ntp.org"
+#define NTP_SERVER2 "time.google.com"
+#define NTP_SERVER3 "time.nist.gov"
+#define GMT_OFFSET_SEC 19800
+#define DAYLIGHT_OFFSET_SEC 0
+#define AP_PASSWORD "esp32setup"
+#define NTP_SYNC_INTERVAL 60000
+#define WIFI_RETRY_INTERVAL 30000
+
+FirebaseData fbdo;
+FirebaseConfig config;
+FirebaseAuth auth;
+
+WebServer server(80);
+
+String deviceId;
+String AP_SSID;
+unsigned long lastNtpSyncAttempt = 0;
+unsigned long lastWiFiRetry = 0;
+
+String readEEPROM(int addr, int len) {
+  String data = "";
+  for (int i = 0; i < len; i++) {
+    char c = EEPROM.read(addr + i);
+    if (c == 0) break; // Stop at null terminator
+    data += c;
+  }
+  return data;
+}
+
+void writeEEPROM(int addr, const String& data) {
+  for (int i = 0; i < data.length(); i++) {
+    EEPROM.write(addr + i, data[i]);
+  }
+  EEPROM.write(addr + data.length(), 0); // Null-terminate the string
+  EEPROM.commit();
+}
+
+void logMessage(String level, String message) {
+  time_t now = time(nullptr);
+  char buf[20];
+  if (now > 100000) {
+    strftime(buf, sizeof(buf), "%F %T", localtime(&now));
+  } else {
+    strcpy(buf, "No NTP");
+  }
+  Serial.printf("[%s] %s: %s\n", buf, level.c_str(), message.c_str());
+}
+
+bool connectToWiFi() {
+  String ssid = readEEPROM(WIFI_SSID_ADDR, 64);
+  String pass = readEEPROM(WIFI_PASS_ADDR, 64);
+
+  if (ssid.isEmpty()) {
+    WiFi.mode(WIFI_AP);
+    WiFi.softAP(AP_SSID.c_str(), AP_PASSWORD);
+    logMessage("INFO", "AP Mode Started: " + AP_SSID);
+    digitalWrite(ONBOARD_LED, LOW); // LED OFF in AP mode
+    return false;
+  }
+
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid.c_str(), pass.c_str());
+  logMessage("INFO", "Connecting to WiFi: " + ssid);
+
+  int retry = 20; // 10 seconds timeout
+  while (WiFi.status() != WL_CONNECTED && retry--) {
+    digitalWrite(ONBOARD_LED, retry % 2); // Blink LED while connecting
+    delay(500);
+  }
+  Serial.println();
+
+  if (WiFi.status() == WL_CONNECTED) {
+    logMessage("INFO", "Connected: " + WiFi.localIP().toString());
+    digitalWrite(ONBOARD_LED, HIGH); // LED ON when connected
+    return true;
+  }
+
+  WiFi.mode(WIFI_AP);
+  WiFi.softAP(AP_SSID.c_str(), AP_PASSWORD);
+  logMessage("INFO", "Fallback to AP Mode: " + AP_SSID);
+  digitalWrite(ONBOARD_LED, LOW);
+  return false;
+}
+
+void syncNTP() {
+  configTime(GMT_OFFSET_SEC, DAYLIGHT_OFFSET_SEC, NTP_SERVER1, NTP_SERVER2, NTP_SERVER3);
+  for (int i = 0; i < 20; ++i) {
+    if (time(nullptr) > 100000) return; 
+    delay(1000);
+  }
+  logMessage("WARN", "NTP sync failed");
+}
+
+void resetToFactory() {
+  logMessage("INFO", "Factory reset...");
+  for (int i = 0; i < EEPROM_SIZE; ++i) {
+    EEPROM.write(i, 0);
+  }
+  EEPROM.commit();
+  delay(500);
+  ESP.restart();
+}
+
+void handleConfigure() {
+  if (server.method() != HTTP_POST) {
+    return server.send(405, "text/plain", "Method Not Allowed");
+  }
+
+  DynamicJsonDocument doc(1024);
+  deserializeJson(doc, server.arg("plain"));
+
+  const char* ssid = doc["ssid"];
+  const char* pass = doc["password"];
+  const char* host = doc["host"];
+  const char* auth = doc["auth"];
+  const char* userId = doc["userId"];
+  const char* devId = doc["deviceId"];
+
+  if (!ssid || !pass || !host || !auth || !userId || !devId) {
+    return server.send(400, "text/plain", "Missing fields");
+  }
+
+  writeEEPROM(WIFI_SSID_ADDR, ssid);
+  writeEEPROM(WIFI_PASS_ADDR, pass);
+  writeEEPROM(FIREBASE_HOST_ADDR, host);
+  writeEEPROM(FIREBASE_AUTH_ADDR, auth);
+  writeEEPROM(OWNER_UID_ADDR, userId);
+  writeEEPROM(DEVICE_ID_ADDR, devId);
+
+  logMessage("INFO", "Saved new WiFi/Firebase config");
+  server.send(200, "text/plain", "OK. Restarting...");
+  delay(1000);
+  ESP.restart();
+}
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(ONBOARD_LED, OUTPUT);
+  pinMode(RESET_PIN, INPUT_PULLUP);
+  EEPROM.begin(EEPROM_SIZE);
+
+  deviceId = readEEPROM(DEVICE_ID_ADDR, 32);
+  if (deviceId.isEmpty()) {
+    
+    WiFi.mode(WIFI_STA);
+    delay(10); 
+    
+    String mac = WiFi.macAddress();
+    // Remove colons to get a compact ID
+    mac.replace(":", "");
+    deviceId = "ESP32_" + mac;
+    writeEEPROM(DEVICE_ID_ADDR, deviceId);
+  }
+  AP_SSID = "ESP32-Setup-" + deviceId;
+
+  if (digitalRead(RESET_PIN) == LOW) {
+    resetToFactory();
+  }
+
+  if (!connectToWiFi()) {
+    server.on("/configure", HTTP_POST, handleConfigure);
+    server.begin();
+    return;
+  }
+
+  syncNTP();
+  server.on("/configure", HTTP_POST, handleConfigure);
+  server.begin();
+  logMessage("INFO", "Server started");
+}
+
+void loop() {
+  server.handleClient();
+
+  if (WiFi.getMode() == WIFI_AP && millis() - lastWiFiRetry > WIFI_RETRY_INTERVAL) {
+    connectToWiFi();
+    lastWiFiRetry = millis();
+  }
+
+  if (time(nullptr) <= 100000 && millis() - lastNtpSyncAttempt > NTP_SYNC_INTERVAL) {
+    syncNTP();
+    lastNtpSyncAttempt = millis();
+  }
+
+  if (digitalRead(RESET_PIN) == LOW) {
+    delay(50); // Simple debounce
+    if (digitalRead(RESET_PIN) == LOW) {
+      resetToFactory();
+    }
+  }
+
+  delay(10); 
+}</code></pre>
+                </div>
             </div>
 
             <div class="step-card" data-aos="fade-up" data-aos-delay="100">
@@ -232,12 +520,41 @@
     </footer>
 
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/cpp.min.js"></script>
+    
     <script>
+        // Initialize Animations
         AOS.init({
             duration: 800,
             once: true,
             offset: 100
         });
+
+        // Initialize Syntax Highlighting
+        hljs.highlightAll();
+
+        // Copy Code Functionality
+        function copyCode() {
+            const codeContent = document.getElementById('firmwareCode').innerText;
+            const btn = document.querySelector('.copy-btn');
+            
+            navigator.clipboard.writeText(codeContent).then(() => {
+                // Change button state to show success
+                const originalHtml = btn.innerHTML;
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
+                btn.style.background = '#27ae60';
+                
+                // Revert after 2 seconds
+                setTimeout(() => {
+                    btn.innerHTML = originalHtml;
+                    btn.style.background = 'var(--primary)';
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy text: ', err);
+                alert("Failed to copy code. Please select and copy manually.");
+            });
+        }
     </script>
 </body>
 </html>
